@@ -1,0 +1,10 @@
+# Path budget for this file: 512 bytes. The static export is deliberately included.
+**/node_modules/
+**/.cache/
+**/.npm/
+**/.vite/
+**/.turbo/
+**/playwright-report/
+**/test-results/
+**/*.tsbuildinfo
+/test/scratch/

@@ -1,0 +1,25 @@
+{
+  "name": "tempo-squeek",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A free rhythm runner powered by Squeektoshi's real wheel.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:browser": "node tests/browser.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "playwright": "1.64.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.6"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

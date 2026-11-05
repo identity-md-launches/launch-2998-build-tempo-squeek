@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <style>text { font-family: 'Space Grotesk', sans-serif; }</style>
+  </defs>
+  <rect width="1200" height="630" fill="#12130f"/>
+  <g fill="none" stroke="#454a2d">
+    <circle cx="981" cy="285" r="209"/><circle cx="981" cy="285" r="196"/>
+    <path d="M981 89v392M785 285h392M843 147l277 277M843 424l277-277M800 210l362 150M905 104l151 362M800 360l362-150M905 466l151-362"/>
+  </g>
+  <circle cx="981" cy="285" r="7" fill="#7e7840"/>
+  <g fill="#aaa572"><circle cx="660" cy="55" r="2"/><circle cx="895" cy="67" r="1.5"/><circle cx="1127" cy="103" r="2"/><circle cx="753" cy="317" r="2"/><circle cx="684" cy="413" r="2"/><circle cx="1033" cy="38" r="1.5"/></g>
+  <path d="M0 488Q180 443 387 482T795 453T1200 470V630H0Z" fill="#22271b"/>
+  <path d="M0 519Q224 474 480 512T1200 488V630H0Z" fill="#2b301e"/>
+  <path d="M0 548h1200v82H0Z" fill="#24291c"/><path d="M0 548h1200" stroke="#686d41" stroke-width="3"/>
+  <text x="72" y="91" font-size="28" font-weight="700" fill="#f4efde">Tempo <tspan fill="#efbe4b">Squeek</tspan></text>
+  <text x="66" y="249" font-size="100" font-weight="700" letter-spacing="-5" fill="#f4efde">Sync or <tspan fill="#efbe4b">Sleep.</tspan></text>
+  <text x="72" y="308" font-size="25" fill="#b1b49f">A rhythm runner powered by Squeektoshi’s real wheel.</text>
+  <rect x="72" y="352" width="300" height="62" rx="12" fill="#efbe4b"/>
+  <text x="100" y="391" font-size="22" font-weight="700" fill="#12130f">90 seconds. Play free.</text>
+  <g transform="translate(885 544) scale(2.2)">
+    <circle cx="0" cy="-27" r="45" fill="none" stroke="#efbe4b" stroke-width="1.3"/>
+    <circle cx="0" cy="-27" r="52" fill="none" stroke="#efbe4b" stroke-opacity=".2"/>
+    <ellipse cx="-26" cy="-14" rx="7" ry="5" fill="#d5a183"/>
+    <ellipse cx="-1" cy="-24" rx="25" ry="24" fill="#d7a066"/>
+    <ellipse cx="7" cy="-19" rx="17" ry="17" fill="#f2d3a3"/>
+    <circle cx="25" cy="-44" r="8" fill="#b78053"/>
+    <circle cx="17" cy="-31" r="20" fill="#e1af79"/>
+    <circle cx="7" cy="-46" r="10" fill="#d7a066"/>
+    <circle cx="7" cy="-46" r="5.5" fill="#edbcb0"/>
+    <ellipse cx="29" cy="-24" rx="13" ry="10" fill="#f2d3a3"/>
+    <ellipse cx="25" cy="-34" rx="2.7" ry="3.3" fill="#24211a"/>
+    <circle cx="26" cy="-35" r=".9" fill="#fff4d8"/>
+    <ellipse cx="40" cy="-26" rx="3" ry="2.5" fill="#4c3429"/>
+    <path d="m30-22 16 2m-15 0 12 4" stroke="#9e7450"/>
+    <ellipse cx="21" cy="-24" rx="4" ry="2.5" fill="#e0a18a"/>
+    <path d="m3-17 17 4-7 5Zm0 0-14-1 6 7Z" fill="#efbe4b"/>
+    <ellipse cx="11" cy="-2" rx="10" ry="4" fill="#f2c78e"/>
+    <ellipse cx="-12" cy="-2" rx="10" ry="4" fill="#bd824f"/>
+  </g>
+  <g transform="translate(1085 473) scale(2)"><path d="m-13 8 7-20L12 8v5h-25Z" fill="#d99e37"/><path d="m-13 8 7-20L12 8Z" fill="#f6ce69"/><g fill="#b47c29"><circle cx="-5" cy="2" r="3"/><circle cx="4" cy="5" r="2"/><circle cx="-5" cy="-6" r="1.5"/></g></g>
+  <text x="72" y="591" font-size="18" fill="#b1b49f">A Squeekchain community game</text>
+</svg>
