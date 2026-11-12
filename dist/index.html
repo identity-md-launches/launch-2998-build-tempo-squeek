@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#12130f" />
     <title>Tempo Squeek — Sync or Sleep</title>
-    <meta name="description" content="Jump, duck, and catch the beat in a free 90-second rhythm runner powered by Squeektoshi’s real wheel. Play live with Squeekchain or practice in SIM." />
+    <meta name="description" content="Jump, duck, and catch the beat in a free 90-second rhythm runner powered by Squeektoshi’s real wheel. Play live or in SIM, and sign in for free to join the public leaderboard." />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Tempo Squeek — Sync or Sleep" />
     <meta property="og:description" content="One hamster. One real wheel. Ninety seconds to find your rhythm. A free Squeekchain community game." />
@@ -16,8 +16,8 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="preload" href="./fonts/space-grotesk-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
-    <script type="module" crossorigin src="./assets/index-BJcPxXLA.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BmzyCEW7.css">
+    <script type="module" crossorigin src="./assets/index-CbtrhgqY.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-C1boNLAf.css">
   </head>
   <body>
     <a class="skip-link" href="#game">Skip to game</a>
@@ -34,6 +34,7 @@
         <nav class="header-actions" aria-label="Game options">
           <button class="icon-button" id="sound-button" type="button" aria-label="Enable sound" aria-pressed="false" title="Enable sound"></button>
           <button class="help-button" id="help-button" type="button"><span class="help-icon" aria-hidden="true">?</span><span class="help-label">How to play</span></button>
+          <button class="wallet-button" id="wallet-button" type="button" data-state="idle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V7Zm0 0 11-3v3"/><path d="M16 13.5h.01"/></svg><span id="wallet-button-label">Connect wallet</span></button>
         </nav>
       </header>
 
@@ -83,14 +84,42 @@
             <div class="track-identity"><span id="round-label">SqueekCore round <strong id="round">–</strong></span><span class="track-seed">Track seed <strong id="seed">–</strong></span></div>
             <div class="personal-best"><span id="best-icon" aria-hidden="true"></span><span id="best-label">Live best</span> <strong id="best">0</strong></div>
           </div>
+          <p class="wallet-hud" id="wallet-hud" hidden></p>
         </section>
 
         <div class="controls" aria-label="Runner controls">
           <button class="control-button" id="jump-button" type="button" aria-keyshortcuts="Space" disabled><span class="control-icon" id="jump-icon" aria-hidden="true"></span><span class="control-name">Jump</span><span class="control-hint"><kbd>Space</kbd><span> / tap</span></span></button>
           <button class="control-button" id="duck-button" type="button" aria-keyshortcuts="ArrowDown" disabled><span class="control-icon" id="duck-icon" aria-hidden="true"></span><span class="control-name">Duck</span><span class="control-hint"><kbd>↓</kbd><span> / swipe down</span></span></button>
         </div>
+        <section class="run-panel" id="run-panel" aria-labelledby="run-panel-title" hidden>
+          <h2 id="run-panel-title">Your run, on the record</h2>
+          <p id="run-board-status" role="status"></p>
+          <div class="checkpoint-box" id="checkpoint-box">
+            <p class="checkpoint-help">Optional: call the public SqueekMining.checkpoint() on Ethereum Sepolia for the settled round this run was played in. Your wallet sends it and pays a small test-ETH fee.</p>
+            <div class="checkpoint-actions">
+              <button type="button" class="secondary-button" id="checkpoint-button">Checkpoint this run on-chain</button>
+              <button type="button" class="secondary-button" id="switch-button" hidden>Switch to Ethereum Sepolia</button>
+            </div>
+            <p class="checkpoint-status" id="checkpoint-status" role="status"></p>
+          </div>
+        </section>
         <p class="beat-tip"><span class="mini-ring" aria-hidden="true"></span>Catch cheese when your ring flashes for a <strong>Perfect Squeek.</strong></p>
         <div class="below-game"><p>Real wheel. Your rhythm.</p><p id="storage-note">Free to play · Best saved on this device</p></div>
+
+        <section class="leaderboard" id="leaderboard" aria-labelledby="board-title">
+          <div class="board-head">
+            <h2 id="board-title">Public leaderboard</h2>
+            <button type="button" class="text-button" id="board-refresh">Refresh</button>
+          </div>
+          <p class="board-intro">Each signed-in wallet’s best live run. Every visitor sees the same board.</p>
+          <p class="board-status" id="board-status" role="status">Loading the board…</p>
+          <div class="board-scroll">
+            <table class="board-table" id="board-table" hidden>
+              <thead><tr><th scope="col">Rank</th><th scope="col">Wallet</th><th scope="col">Best</th><th scope="col">Round</th><th scope="col">Set</th></tr></thead>
+              <tbody id="board-body"></tbody>
+            </table>
+          </div>
+        </section>
       </main>
 
       <footer class="site-footer"><span>Made for the Squeekchain community.</span><span>Let the little guy do his thing.</span></footer>
@@ -110,8 +139,15 @@
       <p>Collect cheese during the ring’s 120 ms beat flash: your combo goes up by one and the cheese earns 50 points instead of 10. Dream Cheese earns 30. Distance and cheese points use your current combo. Bumps reset it to ×1; the run continues.</p>
       <h3>Live means live</h3>
       <p>The public Squeekchain status API updates every 5 seconds. The latest reported SqueekCore round seeds the track, so the same round gives everyone the same layout. After three failed readings, the game switches to labelled SIM practice. Select LIVE to reconnect.</p>
+      <h3>Optional: wallet and leaderboard</h3>
+      <p>Connect a wallet and sign one message to put your live runs on the public leaderboard. Signing is free: it is not a transaction and costs no gas. After a run you may also checkpoint it on Ethereum Sepolia, a test network; that is a real transaction your wallet confirms.</p>
       <p class="help-note">SIM uses a built-in wheel cycle and its own practice seed. Live and practice records stay separate in this browser. No account or purchase is needed.</p>
       <button type="button" class="primary-button dialog-done" id="help-done">Back to the track</button>
+    </dialog>
+    <dialog id="wallet-dialog" class="wallet-dialog" aria-labelledby="wallet-title">
+      <div class="dialog-header"><h2 id="wallet-title">Connect a wallet</h2><button type="button" id="close-wallet" class="icon-button" aria-label="Close wallet options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+      <div id="wallet-body"></div>
+      <p class="wallet-note" id="wallet-note" role="status"></p>
     </dialog>
     <div class="sr-only" role="status" id="announcer"></div>
     <noscript><p class="noscript">Enable JavaScript to play Tempo Squeek. The game runs entirely in your browser.</p></noscript>

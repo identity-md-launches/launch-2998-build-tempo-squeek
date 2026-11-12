@@ -6,6 +6,7 @@ import { GameAudio } from './audio.ts';
 import { readBest, saveBest } from './storage.ts';
 import { icon } from './icons.ts';
 import type { WheelState } from './wheel.ts';
+import { createOnchain } from './onchain.ts';
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -57,6 +58,9 @@ let newRecord = false;
 let lastAnnouncement = '';
 const format = (value: number) => Math.floor(value).toLocaleString('en-US');
 const setText = (node: HTMLElement, value: string) => { if (node.textContent !== value) node.textContent = value; };
+
+let runRound: string | null = null;
+const onchain = createOnchain(message => announce(message));
 
 function announce(message: string): void {
   if (message === lastAnnouncement) return;
@@ -172,6 +176,8 @@ function startRun(restart = false): void {
   }
   if (restart) runner.state.status = 'ready';
   if (!runner.start()) return;
+  runRound = runner.state.round;
+  onchain.runStarted();
   newRecord = false;
   lastFrame = performance.now();
   lastStatus = '';
@@ -208,6 +214,8 @@ runner.onEvent = event => {
     lastStatus = '';
     renderOverlay();
     renderHud();
+    const live = s.mode === 'live' && !s.mixedSources;
+    onchain.runFinished({ score: s.score, round: live ? runRound : null, live, seed: s.seed, distance: s.distance, cheese: s.cheese, perfects: s.perfects });
     ui.start.focus({ preventScroll: true });
     announce(`Run complete. ${s.score} points, ${s.cheese} cheese, ${s.perfects} Perfect Squeeks.`);
   } else if (event.type !== 'beat' && event.type !== 'cheese') announce(runner.state.message);
