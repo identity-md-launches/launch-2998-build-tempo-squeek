@@ -52,10 +52,10 @@ The layout constants in `src/styles.css` use a 4px base with 8, 12, 16, 24 and 3
 The implemented content breakpoints are:
 
 - **46rem / 736px:** 16px page margins; 16px padding in the run panel and leaderboard; the wallet dialog becomes a bottom sheet (full width, top corners only); icon-only help; four compact stats; separate visible pause/restart row during play; scene minimum height 336px instead of 414px; controls keep large targets and place key hints on a second line.
-- **28rem / 448px:** compact live-reading typography, 44px mode buttons and a 36px brand mark. The header wraps: sound and help sit on a second row with the wallet control pushed to its right edge; leaderboard cells tighten to 6px padding.
-- **22rem / 352px:** 12px page margins, 16px brand and stat values, freely wrapping status/track data, and the decorative signal/trophy marks removed where space is limited.
+- **28rem / 448px:** compact live-reading typography, 44px mode buttons, a 16px brand title and a 36px brand mark. Sound, help and wallet stay beside the brand at normal text size. The wallet control says “Connect”, retains the accessible name “Connect wallet”, hides its decorative glyph and keeps a 44px target. Connected addresses never wrap inside the button; the brand can wrap instead. Leaderboard cells tighten to 6px padding.
+- **22rem / 352px:** 12px page margins, 16px stat values, freely wrapping status/track data, and decorative brand/signal/trophy marks removed where space is limited.
 
-The score grid uses `auto-fit` with a `3.5rem` minimum on mobile: it becomes two columns when text is enlarged to 200%. The start/result overlay participates in document flow and reserves `6.25rem` beneath its content; it grows with text rather than covering the track bar or controls. Track identity can wrap long round values. The canvas is an absolutely positioned illustration behind that intrinsic scene layout.
+The header uses natural flex wrapping with a flexible brand and content-sized utilities; no utility group is forced onto a full-width second row. Enlarged text can wrap the groups when necessary. The score grid uses `auto-fit` with a `3.5rem` minimum on mobile: it becomes two columns when text is enlarged to 200%. The start/result overlay participates in document flow and reserves `6.25rem` beneath its content; it grows with text rather than covering the track bar or controls. Track identity can wrap long round values. The canvas is an absolutely positioned illustration behind that intrinsic scene layout.
 
 Rendered at 320, 390, 768 and 1440 CSS pixels, the page had no horizontal overflow and the start action was in the first viewport. The 390px view was also checked with 200% text enlargement. This was text enlargement, not a native browser zoom session. All content remains in ordinary vertical document flow; no fixed controls cover it.
 
@@ -77,7 +77,7 @@ The interface is flat: structural borders, tonal backgrounds, and spacing do the
 | `.control-button` | `src/main.ts:222`, `src/styles.css:137` | At least 64px high, pointer/keyboard/touch activation, pressed-state border, disabled until play. Pointer cancellation releases held input. |
 | `.icon-button` | `src/icons.ts`, `src/styles.css:84` | At least 44px target, descriptive accessible name, consistent `currentColor` SVG strokes, visible focus and hover states. |
 | Native help dialog | `index.html`, `src/main.ts:287` | Pauses play, starts focus at Close, explicitly wraps Tab/Shift+Tab, closes with Escape/backdrop/close action, returns focus to the help trigger. |
-| `.wallet-button` | `index.html`, `src/onchain.ts:renderButton`, `src/styles.css` (On-chain layer block) | 44px bordered raised control in the header: wallet glyph in amber plus “Connect wallet”; connected it shows the short checksummed address and the glyph turns sage once signed in. Opens the wallet dialog. |
+| `.wallet-button` | `index.html`, `src/onchain.ts:renderButton`, `src/styles.css` (On-chain layer block) | 44px bordered raised control in the header: wallet glyph in amber plus “Connect wallet” (compact “Connect” without the glyph at ≤448px); connected it shows the short checksummed address and the glyph turns sage once signed in. Opens the wallet dialog. |
 | Wallet dialog `.wallet-dialog` | `index.html`, `src/onchain.ts:renderDialog` | Native `<dialog>`, at most 420px wide with 16px padding; 48px `.wallet-row`s with a 28px `.wallet-mark` (wallet’s own EIP-6963 icon, or its initial); phone “Open in” rows; signed-in, free sign-in and “Switch to Ethereum Sepolia” blocks separated by hairlines; a text “Disconnect”; one polite `#wallet-note` line for errors. Closes by ×, Escape or backdrop and returns focus to the wallet control. Rows dim to 60% while a wallet prompt is open. |
 | `.wallet-hud` | `index.html`, `src/onchain.ts:renderHud` | One line under the track bar inside the cabinet, shown only after sign-in: short address, wallet best and rank. |
 | `.run-panel` | `index.html`, `src/onchain.ts:renderRunPanel` | Appears below the controls after a finished run: leaderboard save status, then the optional checkpoint block with an outlined amber `.secondary-button` (48px), a “Switch to Ethereum Sepolia” button when needed, and a polite status line that carries the transaction link. |
@@ -85,6 +85,8 @@ The interface is flat: structural borders, tonal backgrounds, and spacing do the
 | Status announcements | `src/main.ts:61` | Stable polite regions for feed state and significant game events. Beat flashes and fast score changes are not announced repeatedly. |
 
 Hover changes are gated to hover-capable devices. Named background/border/transform transitions last 120ms, only with `prefers-reduced-motion: no-preference`. A press scales a control to 0.96. Reduced motion also removes background parallax, wheel rotation, limb bobbing and the expanding ring; the essential runner motion and static beat cue remain, with a visible pause action. Nothing starts running automatically on arrival. Sound is opt-in.
+
+Wallet dialog rows are replaced as connection/sign-in state changes. If a focused row is about to be replaced, focus moves to the persistent close control. Sheet key events stay inside the dialog so game shortcuts cannot intercept Escape; closing restores focus to the header wallet control.
 
 ## Do’s and Don’ts
 

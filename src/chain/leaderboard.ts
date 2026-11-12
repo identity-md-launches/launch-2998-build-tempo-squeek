@@ -112,7 +112,7 @@ export function buildScoreEvent(signIn: SignIn, run: { score: number; round: str
     pubkey: key.pubkey,
     created_at: Math.floor(playedAt / 1000),
     kind: BOARD_KIND,
-    tags: [['d', `${BOARD_TAG}:${signIn.address.toLowerCase()}:${playedAt}`], ['t', BOARD_TAG]],
+    tags: [['d', `${BOARD_TAG}:${signIn.address.toLowerCase()}`], ['t', BOARD_TAG]],
     content: JSON.stringify({
       v: 1, game: 'Tempo Squeek', address: signIn.address, ...run, playedAt,
       signIn: { message: signIn.message, signature: signIn.signature },
@@ -151,19 +151,34 @@ export async function publishScore(event: NostrEvent, relays: readonly string[] 
 
 const verified = new Map<string, ScoreEntry | null>();
 
-/** Reads every relay, merges by event id, verifies, and returns the board plus how many relays answered. */
+/** Reads relay history in pages, including legacy per-run events, then verifies each wallet's best. */
 export async function fetchBoard(relays: readonly string[] = RELAYS): Promise<{ rows: BoardRow[]; relaysAnswered: number }> {
   const events = new Map<string, NostrEvent>();
   let answered = 0;
-  await Promise.all(relays.map(url => {
-    const sub = `board-${Math.random().toString(36).slice(2, 8)}`;
-    let gotEose = false;
-    return withRelay(url, 7000, ws => ws.send(JSON.stringify(['REQ', sub, { kinds: [BOARD_KIND], '#t': [BOARD_TAG], limit: 2000 }])), (msg, done) => {
-      if (msg[0] === 'EVENT' && msg[1] === sub && msg[2] && typeof msg[2] === 'object') {
-        const e = msg[2] as NostrEvent;
-        if (typeof e.id === 'string') events.set(e.id, e);
-      } else if (msg[0] === 'EOSE' && msg[1] === sub) { gotEose = true; done(); }
-    }).then(() => { if (gotEose) answered++; });
+  await Promise.all(relays.map(async url => {
+    const seen = new Set<string>();
+    let until: number | undefined;
+    let relayAnswered = false;
+    for (;;) {
+      const sub = `board-${Math.random().toString(36).slice(2, 8)}`;
+      let gotEose = false, added = 0, oldest = Infinity;
+      await withRelay(url, 7000, ws => ws.send(JSON.stringify(['REQ', sub, {
+        kinds: [BOARD_KIND], '#t': [BOARD_TAG], limit: 2000, ...(until === undefined ? {} : { until }),
+      }])), (msg, done) => {
+        if (msg[0] === 'EVENT' && msg[1] === sub && msg[2] && typeof msg[2] === 'object') {
+          const e = msg[2] as NostrEvent;
+          if (typeof e.id !== 'string' || !Number.isSafeInteger(e.created_at) || e.created_at < 0 || (until !== undefined && e.created_at > until)) return;
+          oldest = Math.min(oldest, e.created_at);
+          if (!seen.has(e.id)) { seen.add(e.id); added++; events.set(e.id, e); }
+        } else if (msg[0] === 'EOSE' && msg[1] === sub) { gotEose = true; done(); }
+      });
+      if (gotEose) relayAnswered = true;
+      if (!gotEose || !Number.isFinite(oldest) || oldest === 0) break;
+      // `until` is inclusive. Re-read the boundary second before advancing past it.
+      // Continue even with a short page: relays can cap our requested limit themselves.
+      until = added > 0 ? oldest : oldest - 1;
+    }
+    if (relayAnswered) answered++;
   }));
   // Verify the highest claims first; stop at each wallet's first genuine entry.
   const claims = [...events.values()].map(e => {

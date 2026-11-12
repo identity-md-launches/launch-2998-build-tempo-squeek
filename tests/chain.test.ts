@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { keccak256, sha256, toHex, utf8 } from '../src/chain/hash.ts';
 import { checksumAddress, recoverPersonalSigner, schnorrPublicKey, schnorrSign, schnorrVerify } from '../src/chain/secp256k1.ts';
-import { CHECKPOINT_SELECTOR, decodeCheckpointStatus, decodeMiningState, describeRevert, selector } from '../src/chain/mining.ts';
+import { CHECKPOINT_SELECTOR, checkReadiness, decodeCheckpointStatus, decodeMiningState, describeRevert, selector } from '../src/chain/mining.ts';
+import { SQUEEK_CORE, SQUEEK_MINING } from '../src/chain/config.ts';
 import { aggregateBoard, buildSignInMessage, parseScoreEvent, eventId, type NostrEvent } from '../src/chain/leaderboard.ts';
 
 test('keccak256 and sha256 match published vectors', () => {
@@ -17,7 +18,6 @@ test('function selectors match cast sig output', () => {
   assert.equal(CHECKPOINT_SELECTOR, '0xc2c4c5c1');
   assert.equal(selector('checkpointStatus()'), '0x001c856f');
   assert.equal(selector('state()'), '0xc19d93fb');
-  assert.equal(selector('settledThroughRound()'), '0x83d0e1d7');
 });
 
 test('personal_sign recovery matches a signature produced by cast wallet sign', () => {
@@ -53,6 +53,36 @@ test('mining reads decode and reverts read in plain English', () => {
   assert.equal(state.paused, false);
   assert.match(describeRevert('0x4cb3183d'), /paused/i);
   assert.match(describeRevert({ code: 4001 }), /rejected/i);
+});
+
+test('checkpoint readiness reads the deployed Core.state() ABI before simulating checkpoint()', async t => {
+  const word = (n: number) => BigInt(n).toString(16).padStart(64, '0');
+  const encode = (ns: number[]) => `0x${ns.map(word).join('')}`;
+  const calls: { to: string; data: string; from?: string }[] = [];
+  let settledThrough = 1190;
+  t.mock.method(globalThis, 'fetch', async (_url: unknown, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    const call = body.params[0];
+    calls.push(call);
+    let result: string;
+    if (call.to === SQUEEK_CORE && call.data === '0xc19d93fb') result = encode([settledThrough, 59890, 6493456710641, 6493, 456710641, 9912, 1003, 0]);
+    else if (call.to === SQUEEK_MINING && call.data === '0xc19d93fb') result = encode([5, 1187, 17, 0, 6493, 0, 1, 1, 0, 1]);
+    else if (call.to === SQUEEK_MINING && call.data === '0x001c856f') result = encode([0, 1188, 1]);
+    else if (call.to === SQUEEK_MINING && call.data === '0xc2c4c5c1') result = '0x';
+    else return Response.json({ error: { code: 3, message: 'execution reverted', data: '0x' } });
+    return Response.json({ jsonrpc: '2.0', id: body.id, result });
+  });
+  const from = '0x2c7536E3605D9C16a7a3D7b1898e529396a65c23';
+  const ready = await checkReadiness('1188', from);
+  assert.equal(ready.ok, true);
+  if (ready.ok) assert.equal(ready.settledThrough, 1190n);
+  assert.ok(calls.some(c => c.to === SQUEEK_MINING && c.data === '0xc2c4c5c1' && c.from === from));
+  calls.length = 0;
+  settledThrough = 1187;
+  const waiting = await checkReadiness('1188', from);
+  assert.equal(waiting.ok, false);
+  if (!waiting.ok) assert.match(waiting.reason, /has not settled/);
+  assert.equal(calls.some(c => c.data === '0xc2c4c5c1'), false, 'unsettled runs must not be simulated or sent');
 });
 
 test('score events need a valid wallet sign-in bound to the publishing key', () => {

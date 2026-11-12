@@ -18,7 +18,7 @@ export const SEPOLIA = {
 
 /** SqueekMining proxy: anyone may call checkpoint(), the caller pays gas and receives nothing. */
 export const SQUEEK_MINING = '0x2dccb11fcc2defdd188555e45acb52231e82e218';
-/** SqueekCore proxy: settledThroughRound() says which rounds have settled on Sepolia. */
+/** SqueekCore proxy: state()'s first field says which rounds have settled on Sepolia. */
 export const SQUEEK_CORE = '0xfd6c166d4b8e2962e65746a13e5a0797cd4de0c4';
 
 /**

@@ -6,7 +6,6 @@ export const selector = (signature: string) => `0x${toHex(keccak256(utf8(signatu
 export const CHECKPOINT_SELECTOR = selector('checkpoint()');
 const STATUS_SELECTOR = selector('checkpointStatus()');
 const STATE_SELECTOR = selector('state()');
-const SETTLED_SELECTOR = selector('settledThroughRound()');
 
 const ERRORS: Record<string, string | undefined> = {
   [selector('EmergencyPaused()')]: 'SqueekMining is paused right now, so checkpoints are on hold. Try again later.',
@@ -91,8 +90,9 @@ export async function checkReadiness(runRound: string, from: string): Promise<Re
   let settledThrough: bigint, status: CheckpointStatus, state: MiningState;
   try {
     const [settled, statusHex, stateHex] = await Promise.all([
-      call(SQUEEK_CORE, SETTLED_SELECTOR), call(SQUEEK_MINING, STATUS_SELECTOR), call(SQUEEK_MINING, STATE_SELECTOR),
+      call(SQUEEK_CORE, STATE_SELECTOR), call(SQUEEK_MINING, STATUS_SELECTOR), call(SQUEEK_MINING, STATE_SELECTOR),
     ]);
+    // The deployed SqueekCore exposes settledThroughRound as the first field of state().
     settledThrough = words(settled)[0] ?? 0n;
     status = decodeCheckpointStatus(statusHex);
     state = decodeMiningState(stateHex);

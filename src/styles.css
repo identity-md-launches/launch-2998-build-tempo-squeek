@@ -74,13 +74,13 @@ p { text-wrap: pretty; }
 [hidden] { display: none !important; }
 ::selection { background: var(--color-accent); color: var(--color-on-accent); }
 .shell { max-width: 1216px; margin-inline: auto; padding: 32px 32px 24px; }
-.site-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
-.brand { display: flex; align-items: center; gap: 12px; }
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 26px; }
+.brand { display: flex; flex: 1 1 0; align-items: center; gap: 12px; }
 .brand-mark { color: var(--color-accent); flex-shrink: 0; }
 .brand h1 { font-size: var(--text-heading); font-weight: 700; letter-spacing: -0.035em; line-height: 1.2; }
 .brand h1 span { color: var(--color-accent); }
 .brand p { font-size: var(--text-caption); color: var(--color-muted); margin-top: 3px; }
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; align-items: center; gap: 12px; }
 .icon-button { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 10px; border: 0; border-radius: var(--radius-control); background: transparent; }
 .help-button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px; background: transparent; border: 0; border-radius: var(--radius-control); font-size: var(--text-small); }
 .help-icon { display: grid; place-items: center; width: 1.5em; height: 1.5em; border: 1.5px solid currentColor; border-radius: 50%; font-size: var(--text-small); font-weight: 600; line-height: 1; }
@@ -169,7 +169,7 @@ dialog .help-note { padding-top: 16px; margin-top: 20px; border-top: 1px solid v
 .wallet-button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-raised); font-size: var(--text-small); font-weight: 600; text-align: start; }
 .wallet-button svg { width: 18px; height: 18px; color: var(--color-accent); }
 .wallet-button[data-state='signed'] svg { color: var(--color-live); }
-.wallet-button span { font-variant-numeric: tabular-nums; }
+.wallet-button span { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .secondary-button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 18px; border: 1px solid var(--color-accent); border-radius: var(--radius-control); background: transparent; color: var(--color-accent-hover); font-size: var(--text-small); font-weight: 700; }
 .secondary-button:disabled { border-color: var(--color-border); }
 .text-button { min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-accent-hover); font-size: var(--text-small); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
@@ -274,15 +274,17 @@ button:not(:disabled):active { background: var(--color-hover); }
   .phase { padding: 2px 5px; }
   .mode-switch button { min-width: 44px; padding: 8px; }
   .brand { gap: 8px; }
+  .brand h1 { font-size: var(--text-body); }
   .brand-mark { width: 36px; height: 36px; }
-  .site-header { flex-wrap: wrap; row-gap: 8px; }
-  .header-actions { flex: 1 0 100%; justify-content: flex-end; flex-wrap: wrap; }
-  .wallet-button { margin-inline-start: auto; }
-  .header-actions { order: 0; }
+  .site-header { gap: 8px; }
+  .header-actions { flex-shrink: 0; }
+  .wallet-button { padding-inline: 8px; gap: 0; }
+  .wallet-button svg, .wallet-full-label { display: none; }
   .board-table th, .board-table td { padding: 10px 6px; }
 }
 @media (max-width: 22rem) {
   .shell { padding-inline: 12px; }
+  .brand-mark { display: none; }
   .brand h1 { font-size: var(--text-body); letter-spacing: -0.025em; }
   .wheel-bar { padding-inline: 12px; }
   .wheel-source { line-height: 1.2; }

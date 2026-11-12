@@ -21,6 +21,8 @@ const word = n => BigInt(n).toString(16).padStart(64, '0');
 const payload = { measurement: { rpmMilli: 60000, freshness: 'online' }, oracle: { latestClosure: { lastRound: '253' } }, builder: { anchor: { settledThroughRound: '252' } } };
 let settledThrough = 200;
 const relayEvents = [];
+const publishedIds = new Set();
+const rpcCalls = [];
 const results = [];
 const errors = [];
 
@@ -33,19 +35,39 @@ async function setup(context) {
   await context.routeWebSocket(/^wss:\/\//, ws => {
     ws.onMessage(raw => {
       const msg = JSON.parse(String(raw));
-      if (msg[0] === 'EVENT') { if (!relayEvents.some(e => e.id === msg[1].id)) relayEvents.push(msg[1]); ws.send(JSON.stringify(['OK', msg[1].id, true, ''])); }
-      if (msg[0] === 'REQ') { for (const e of relayEvents) ws.send(JSON.stringify(['EVENT', msg[1], e])); ws.send(JSON.stringify(['EOSE', msg[1]])); }
+      if (msg[0] === 'EVENT') {
+        const event = msg[1];
+        publishedIds.add(event.id);
+        const key = e => `${e.kind}:${e.pubkey}:${e.tags.find(t => t[0] === 'd')?.[1]}`;
+        const previous = relayEvents.findIndex(e => key(e) === key(event));
+        if (previous < 0) relayEvents.push(event);
+        else if (event.created_at > relayEvents[previous].created_at || (event.created_at === relayEvents[previous].created_at && event.id < relayEvents[previous].id)) relayEvents[previous] = event;
+        ws.send(JSON.stringify(['OK', event.id, true, '']));
+      }
+      if (msg[0] === 'REQ') {
+        const filter = msg[2];
+        const page = relayEvents.filter(e => filter.until === undefined || e.created_at <= filter.until)
+          .sort((a, b) => b.created_at - a.created_at || a.id.localeCompare(b.id)).slice(0, filter.limit ?? 2000);
+        for (const e of page) ws.send(JSON.stringify(['EVENT', msg[1], e]));
+        ws.send(JSON.stringify(['EOSE', msg[1]]));
+      }
     });
   });
   await context.route(API, r => r.fulfill({ json: payload }));
   await context.route(/sepolia/, async r => {
     const body = r.request().postDataJSON();
     const data = body.params?.[0]?.data;
+    const to = body.params?.[0]?.to?.toLowerCase();
     let result = '0x';
     if (body.method === 'eth_call') {
-      if (data === '0x83d0e1d7') result = `0x${word(settledThrough)}`;
-      else if (data === '0x001c856f') result = `0x${word(0)}${word(254)}${word(1)}`;
-      else if (data === '0xc19d93fb') result = `0x${[5, 252, 17, 0, 6493, 0, 1, 1, 0, 1].map(word).join('')}`;
+      rpcCalls.push({ to, data });
+      if (to === '0xfd6c166d4b8e2962e65746a13e5a0797cd4de0c4' && data === '0xc19d93fb') result = `0x${[settledThrough, 59890, 6493456710641n, 6493, 456710641, 9912, 1003, 0].map(word).join('')}`;
+      else if (to === '0x2dccb11fcc2defdd188555e45acb52231e82e218' && data === '0x001c856f') result = `0x${word(0)}${word(254)}${word(1)}`;
+      else if (to === '0x2dccb11fcc2defdd188555e45acb52231e82e218' && data === '0xc19d93fb') result = `0x${[5, 252, 17, 0, 6493, 0, 1, 1, 0, 1].map(word).join('')}`;
+      else if (to !== '0x2dccb11fcc2defdd188555e45acb52231e82e218' || data !== '0xc2c4c5c1') {
+        await r.fulfill({ json: { jsonrpc: '2.0', id: body.id, error: { code: 3, message: 'execution reverted', data: '0x' } } });
+        return;
+      }
     }
     await r.fulfill({ json: { jsonrpc: '2.0', id: body.id, result } });
   });
@@ -79,7 +101,7 @@ try {
           if (sends === 1) throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
           return `0x${'ab'.repeat(32)}`;
         }
-        if (method === 'eth_getTransactionReceipt') return { status: '0x1', blockNumber: '0xb8deb9' };
+        if (method === 'eth_getTransactionReceipt') return { status: window.__receiptStatus ?? '0x1', blockNumber: '0xb8deb9' };
         throw new Error(`unsupported ${method}`);
       },
     };
@@ -101,7 +123,9 @@ try {
     assert.ok((await page.evaluate(() => window.__calls)).includes('personal_sign'));
     assert.ok(!(await page.evaluate(() => window.__calls)).includes('eth_sendTransaction'));
     await page.screenshot({ path: `${out}/shots/signed-in-390.png` });
-    await page.click('#close-wallet');
+    await page.keyboard.press('Escape');
+    await page.clock.runFor(50);
+    await page.waitForFunction(() => !document.querySelector('#wallet-dialog').open && document.activeElement.id === 'wallet-button');
     assert.match(await page.locator('#wallet-hud').textContent(), /0x2c75…5c23/);
   });
 
@@ -112,11 +136,12 @@ try {
     await advance(1000);
     await page.waitForFunction(() => document.querySelector('#run-board-status').textContent.startsWith('Saved'));
     assert.equal(relayEvents.length, 1);
+    assert.equal(relayEvents[0].tags.find(t => t[0] === 'd')[1], `tempo-squeek-board-v1:${ADDRESS.toLowerCase()}`);
     assert.match(await page.locator('#wallet-hud').textContent(), /Wallet best [\d,]+ · Rank #1/);
     assert.match(await page.locator('#board-body').textContent(), /0x2c75…5c23/);
   });
 
-  await check('wrong network, not settled, rejection and success', async () => {
+  await check('wrong network, not settled, rejection, confirmation and revert', async () => {
     await page.click('#checkpoint-button');
     await page.waitForFunction(() => /another network/.test(document.querySelector('#checkpoint-status').textContent));
     assert.ok(await page.locator('#switch-button').isVisible());
@@ -124,6 +149,7 @@ try {
     await page.waitForFunction(() => /Now on Ethereum Sepolia/.test(document.querySelector('#checkpoint-status').textContent));
     await page.click('#checkpoint-button');
     await page.waitForFunction(() => /has not settled/.test(document.querySelector('#checkpoint-status').textContent));
+    assert.equal((await page.evaluate(() => window.__calls)).includes('eth_sendTransaction'), false);
     settledThrough = 300;
     await page.click('#checkpoint-button');
     await page.waitForFunction(() => /rejected the transaction/.test(document.querySelector('#checkpoint-status').textContent));
@@ -133,10 +159,33 @@ try {
     const tx = await page.evaluate(() => window.__lastTx);
     assert.equal(tx.to, '0x2dccb11fcc2defdd188555e45acb52231e82e218');
     assert.equal(tx.data, '0xc2c4c5c1');
+    assert.ok(rpcCalls.some(c => c.to === '0xfd6c166d4b8e2962e65746a13e5a0797cd4de0c4' && c.data === '0xc19d93fb'));
+    assert.ok(!rpcCalls.some(c => c.data === '0x83d0e1d7'));
     await advance(5000);
     await page.waitForFunction(() => /Checkpoint confirmed/.test(document.querySelector('#checkpoint-status').textContent));
     assert.equal(await page.locator('#checkpoint-status a').getAttribute('href'), `https://sepolia.etherscan.io/tx/0x${'ab'.repeat(32)}`);
     await page.locator('#run-panel').screenshot({ path: `${out}/shots/checkpoint-390.png` });
+    await page.evaluate(() => { window.__receiptStatus = '0x0'; });
+    await page.click('#checkpoint-button');
+    await page.waitForFunction(() => /Checkpoint sent/.test(document.querySelector('#checkpoint-status').textContent));
+    await advance(5000);
+    await page.waitForFunction(() => /checkpoint reverted/.test(document.querySelector('#checkpoint-status').textContent));
+    assert.equal(await page.locator('#start-button').isEnabled(), true, 'game stays usable after an on-chain revert');
+  });
+
+  await check('a lower signed run leaves the public best unchanged and publishes no replacement', async () => {
+    const best = relayEvents[0];
+    const publications = publishedIds.size;
+    payload.measurement.rpmMilli = 0;
+    await advance(5100);
+    await page.click('#start-button');
+    await advance(92_000);
+    await page.waitForFunction(() => document.querySelector('#run-board-status').textContent.startsWith('Your wallet best stays'));
+    assert.equal(publishedIds.size, publications);
+    assert.equal(relayEvents[0].id, best.id);
+    const bestScore = JSON.parse(best.content).score;
+    assert.ok(Number((await page.locator('#score').textContent()).replaceAll(',', '')) < bestScore);
+    assert.ok((await page.locator('#wallet-hud').textContent()).includes(bestScore.toLocaleString('en-US')));
   });
 
   await check('a second visitor without a wallet sees the same board', async () => {

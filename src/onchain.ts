@@ -60,7 +60,13 @@ export function createOnchain(announce: (message: string) => void) {
 
   // ---------- header control and dialog ----------
   function renderButton(): void {
-    ui.buttonLabel.textContent = address ? shortAddress(address) : 'Connect wallet';
+    if (address) ui.buttonLabel.textContent = shortAddress(address);
+    else {
+      const suffix = document.createElement('span');
+      suffix.className = 'wallet-full-label';
+      suffix.textContent = ' wallet';
+      ui.buttonLabel.replaceChildren('Connect', suffix);
+    }
     ui.button.dataset.state = address ? signIn ? 'signed' : 'connected' : 'idle';
     ui.button.setAttribute('aria-label', address ? `Wallet ${shortAddress(address)}${signIn ? ', signed in' : ''}. Open wallet options` : 'Connect wallet');
   }
@@ -85,6 +91,8 @@ export function createOnchain(announce: (message: string) => void) {
   }
 
   function renderDialog(): void {
+    // Replacing a focused wallet/sign-in row must not leave focus behind the modal.
+    if (ui.dialog.open && ui.body.contains(document.activeElement)) ui.close.focus();
     ui.body.replaceChildren();
     if (!address) {
       ui.dialogTitle.textContent = 'Connect a wallet';
@@ -311,6 +319,19 @@ export function createOnchain(announce: (message: string) => void) {
     boardLine = 'Saving to the public leaderboard…';
     renderRunPanel();
     try {
+      // A replaceable event must never overwrite this key's best with a lower run.
+      const knownBest = mergedRows().find(r => r.address.toLowerCase() === signed.address.toLowerCase());
+      await loadBoard();
+      const best = aggregateBoard([...mergedRows(), ...(knownBest ? [knownBest] : [])])
+        .find(r => r.address.toLowerCase() === signed.address.toLowerCase());
+      if (best && best.score >= run.score) {
+        boardLine = `Your wallet best stays ${format(best.score)}. This run did not beat it.`;
+        renderRunPanel(); announce(boardLine); return;
+      }
+      if (boardState === 'offline') {
+        boardLine = 'The leaderboard relays could not be reached to check your best, so this run was not shared. Your device best is still saved.';
+        renderRunPanel(); announce(boardLine); return;
+      }
       const event = buildScoreEvent(signed, { score: run.score, round: run.round!, seed: run.seed, distance: Math.floor(run.distance), cheese: run.cheese, perfects: run.perfects });
       ownEntries.push({ address: signed.address, score: run.score, round: run.round!, playedAt: event.created_at * 1000, id: event.id });
       renderBoard();
@@ -401,6 +422,8 @@ export function createOnchain(announce: (message: string) => void) {
   // ---------- wiring ----------
   ui.button.addEventListener('click', open);
   ui.close.addEventListener('click', () => ui.dialog.close());
+  // Keep the game's Escape/pause and movement shortcuts out of the wallet sheet.
+  ui.dialog.addEventListener('keydown', e => e.stopPropagation());
   ui.dialog.addEventListener('click', e => {
     if (e.target !== ui.dialog) return;
     const box = ui.dialog.getBoundingClientRect();
